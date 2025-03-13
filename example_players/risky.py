@@ -1,44 +1,24 @@
-import random
-import socket
-import json
+import os
+import sys
+# Ensure parent directory is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-# bozo player that always goes for the 7
-
-class RiskyPlayer:
-    def __init__(self, name='Risky'):
-        self.name = name
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(('localhost', 5353))
-        self.sock.send(self.name.encode())
+from template_player import TemplatePlayer
+class RiskyPlayer(TemplatePlayer):
+    def handle_hit_stay(self, msg):
+        # Always choose to hit, we want the cardz
+        self.send("hit")
     
-    def play(self):
-        file = self.sock.makefile()
-        for line in file:
-            if not line.strip():
-                continue
-            msg = json.loads(line)
-            if msg.get('action') == 'hit_stay':
-                # num_numbers = len([c for c in msg['hand'] if c[0] == 'number'])
-                # if num_numbers == 7:
-                # # ALWAYS FLIP 7, LUCK IS ON OUR SIDE
-                self.sock.send(json.dumps('hit').encode())
-            # freeze and flip 3
-            elif msg.get('action') == 'freeze':
-                options = msg['players']
-                if 'Hugo' in options:
-                    self.sock.send(json.dumps('Hugo').encode())
-                elif len(options) == 1:
-                    self.sock.send(json.dumps(options[0]).encode())
-                else:
-                    options.remove(self.name)
-                    self.sock.send(json.dumps(random.choice(options)).encode())
-            elif msg.get('action') == 'flip_three':
-                # Lmao we pick ourself, WE NEED THE CARDS
-                self.sock.send(json.dumps(self.name).encode())
-            elif msg.get('information') == 'game_over':
-                # This means a game to 200 points has ended.
-                print(f"Game Over! Winner: {msg['winner']}")
+    def handle_flip_three(self, msg):
+        # Always choose self in a flip_three situation, we want the cardzzz
+        self.send(self.name)
+    
+    # Use default freeze logic from TemplatePlayer.
+
+    # Ignore the print statements in handle_information
+    def handle_information(self, msg):
+        pass
 
 if __name__ == "__main__":
-    player = RiskyPlayer()
+    player = RiskyPlayer(name='Risky')
     player.play()

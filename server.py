@@ -4,7 +4,7 @@ import json
 import random
 from collections import defaultdict
 
-NUM_GAMES = 10
+NUM_GAMES = 300
 NUMBER_OF_PLAYERS = 2
 
 class Game:
@@ -72,6 +72,8 @@ class Game:
             p.reset()
         # Deal initial card
         for p in players:
+            if p.busted or p.stayed:
+                continue
             if not self.deck:
                 self.deck = self.create_deck()
             card = self.deck.pop()
