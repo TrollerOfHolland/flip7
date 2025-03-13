@@ -21,7 +21,7 @@ class RiskyPlayer:
                 # num_numbers = len([c for c in msg['hand'] if c[0] == 'number'])
                 # if num_numbers == 7:
                 # # ALWAYS FLIP 7, LUCK IS ON OUR SIDE
-                self.sock.send(json.dumps('stay').encode())
+                self.sock.send(json.dumps('hit').encode())
             # freeze and flip 3
             elif msg.get('action') == 'freeze':
                 options = msg['players']
