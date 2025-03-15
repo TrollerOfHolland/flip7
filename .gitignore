@@ -1,0 +1,5 @@
+__pycache__/
+*.bat
+*.exe
+*.log
+.vscode/
