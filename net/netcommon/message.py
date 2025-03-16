@@ -78,7 +78,7 @@ class Message:
         message_raw_bytes += self.body
         return message_raw_bytes
 
-    def __init__(self, type=None):
+    def __init__(self, type=None, json=None):
         self.header = Header()
-        if(type):
-            self.header.type = type
+        if(json): self.push_dict(json)
+        if(type): self.header.type = type

@@ -11,16 +11,13 @@ Flip7 is a card game simulation project that consists of several components:
 
 1. Start the game server:
    ```bash
-   python server.py
+   python FlipServer.py
    ```
 2. In separate terminal windows, run one or more of the example players:
    ```bash
-   python example_players/risky.py
+   python ExampleCallingStation
    ```
-   ```bash
-   python example_players/cautious.py
-   ```
-   You can also use [`template_player.py`](./template_player.py) as a starting point to build your own player.
+   You can also use [`FlipClient.py`](./FlipClientv.py) as a starting point to build your own player.
 
 ## Game Mechanics
 

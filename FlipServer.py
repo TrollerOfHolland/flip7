@@ -1,6 +1,5 @@
 from net.netimports import *
 from FlipGame import *
-from Flip import BasePlayerInfo
 import math
 
 
@@ -9,7 +8,18 @@ class FlipServer(Server):
     games: list[FlipGame] = []
     used_id: list[int] = []
     queue: list[RemotePlayer] = []
-    players: list[RemotePlayer] = []
+
+    def _add_new_client(self, conn, addr):
+
+        player = RemotePlayer(conn, addr)
+        self._clients.append(player)
+        self.queue.append(player)
+
+        id = self.get_id()
+        player.id = id
+
+        player.send(Message(MessageType.ID_ASSIGN, {"id": id}))
+
 
     def create_game(self, player_count):
         new_game = random.sample(self.queue, player_count)
@@ -26,48 +36,32 @@ class FlipServer(Server):
         elif(len(self.queue) >= game_target_players):
             self.create_game(len(self.queue))
         pass
-        
 
-    def _add_new_client(self, connection: Connection):
-        super()._add_new_client(connection)
-
-        id = self.get_id()
-
-        player = RemotePlayer(connection)
-        player.id = id
-        self.players.append(player)
-        self.queue.append(player)
-
-        message = Message(MessageType.ID_ASSIGN)
-        message.push_dict({"id": id})
-        connection.send(message)
-
-    def on_disconnect(self, connection: Connection):
-        # player = self.get_player_by_connection(client)
-
-
-        # if(player in self.queue):
-        #     self.queue.remove(player)
-
-        # game = self.get_game_by_player(player)
-        # if(game):
-        #     game.remove_player(player)
-        # self.players.remove(player)
-        
+    def on_disconnect(self, player: RemotePlayer):
         message = Message(MessageType.DISCONNECT)
-        connection.messages_in.append(message)
+        self._parse_message(player, message)
+
+        if(player in self.queue):
+            self.queue.remove(player)
+
+        self.used_id.remove(player.id)
+
+        super().on_disconnect(player)
+
 
     def _update(self):
+        super()._update()
         for game in self.games:
             if(game.game_over):
                 self.queue.extend(game.players)
                 self.games.remove(game)
         self.matcher()
-        return super()._update()
+        return
 
 
     def get_id(self):
-        for i in range(100000):
+        while(True):
+            i = random.randint(0, 10000)
             if(i not in self.used_id):
                 self.used_id.append(i)
                 return i
@@ -75,26 +69,25 @@ class FlipServer(Server):
     def get_game_by_player(self, client) -> FlipGame:
         return next((game for game in self.games if client in game.players), None)
     
-    def get_player_by_connection(self, connection:Connection) -> RemotePlayer:
-        return next((player for player in self.players if player.connection == connection), None)
+    def _parse_message(self, player: RemotePlayer, message: Message):
 
-    def _parse_message(self, connection: Connection, message: Message):
-
-        player = self.get_player_by_connection(connection)
+        self.parse_lock.acquire()
         if message.header.type == MessageType.PLAYER_INFO:
             message_json = message.get_json()
-            player.set_name(message_json["name"])
+            player.name = message_json["name"]
         else:
             game = self.get_game_by_player(player)
             if(game):
-                if(not game.parse_message(player, message)):
-                    self.players.remove(player)
-                    print("removing client")
-                    self._clients.remove(player.connection)
+                game.parse_message(player, message)
+        self.parse_lock.release()
+
+    def __init__(self, port, addr="127.0.0.1"):
+        self.parse_lock = threading.Lock()
+        super().__init__(port, addr)
                     
 
 def main():
-    server = FlipServer(7070)
+    server = FlipServer(3145)
     server.start_handler()
 
 if __name__ == "__main__":

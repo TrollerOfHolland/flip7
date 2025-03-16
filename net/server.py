@@ -15,8 +15,8 @@ class Server:
     _running = True
     
 
-    def _add_new_client(self, client: Connection):
-        self._clients.append(client)
+    def _add_new_client(self, conn, addr):
+        self._clients.append(Connection(conn, addr))
 
 
     def _acceptor(self):
@@ -26,10 +26,8 @@ class Server:
                 self._logger.log('New connection ' + str(addr))
             except socket.timeout:
                 continue
-            client = Connection(conn, addr)
             print("new connection")
-            #print(id(client._messages_out))
-            self._add_new_client(client)
+            self._add_new_client(conn, addr)
 
     def _parse_message(self, client: Connection, message: Message):
         raise NotImplementedError('_parse_return')

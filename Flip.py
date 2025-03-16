@@ -25,16 +25,12 @@ class Cards(IntEnum):
     PLUS_TEN = 20
     TIMES_TWO = 21
 
-    from Flip import Cards
-from enum import IntEnum
-
 class AddCardResult:
     ALIVE = 0
     BUST = 1 
     SECOND_CHANCE_USED = 2 
 
-class BasePlayerInfo:
-
+class Player:
 
     id: int
 
@@ -74,9 +70,6 @@ class BasePlayerInfo:
         additional_points += 15 if (point_card_count == 7) else 0
 
         return card_points + additional_points
-    
-
-
     
     def new_round(self):
         self.total_points += self.get_points()

@@ -1,18 +1,17 @@
 from net.netimports import *
-from Flip import Cards, BasePlayerInfo
+from Flip import Cards, Player
 import random
 
-class FlipClient(Client, BasePlayerInfo):
+class FlipClient(Client, Player):
     
-    competitors: list[BasePlayerInfo] = []
+    competitors: list[Player] = []
 
     def _on_connect(self):
-        message = Message(MessageType.PLAYER_INFO)
         message_json = {"name": "Larsykfz222 " + str(random.randint(0, 100000)), "pass": "elo"}
-        message.push(message_json)
+        message = Message(MessageType.PLAYER_INFO, message_json)
         self.send(message)
     
-    def get_player_by_id(self, id) -> BasePlayerInfo:
+    def get_player_by_id(self, id) -> Player:
         if(id == self.id):
             return self
         return next((player for player in self.competitors if player.id == id), 0)
@@ -53,7 +52,7 @@ class FlipClient(Client, BasePlayerInfo):
                 message_json = message.get_json()
                 for k, id in message_json.items():
                     if(id != self.id):
-                        competitior = BasePlayerInfo()
+                        competitior = Player()
                         competitior.id = id
                         self.competitors.append(competitior)
 
@@ -80,7 +79,7 @@ class FlipClient(Client, BasePlayerInfo):
                     if(k == self.id):
                         print(f"{rank}. You - {v}points")
                     else:
-                        print(f"{rank}. player {k} - {v}points")
+                        print(f"{rank}. Player {k} - {v}points")
                     rank +=1 
 
             case MessageType.NEW_CARD:
@@ -91,115 +90,62 @@ class FlipClient(Client, BasePlayerInfo):
                 player = self.get_player_by_id(id)
                 if(player):
                     player.add_card(card)
-                return
             
             case MessageType.BUST:
                 message_json = message.get_json()
                 player = self.get_player_by_id(message_json["id"])
                 player.is_bust = True
-                return
                 
             case MessageType.STAND:
                 message_json = message.get_json()
                 player = self.get_player_by_id(message_json["id"])
                 player.is_passed = True
-                return
             
             case MessageType.FREEZE:
                 message_json = message.get_json()
                 target = self.get_player_by_id(message_json["to"])
-                target.is_passed = True
-
                 giver = self.get_player_by_id(message_json["from"])
+                target.is_passed = True
                 self.on_freeze(giver, target)
-                return
             
             case MessageType.FLIP_THREE:
                 message_json = message.get_json()
                 target = self.get_player_by_id(message_json["to"])
-
                 giver = self.get_player_by_id(message_json["from"])
                 self.on_flip_three(giver, target)
-                return
             
             case MessageType.SECOND_CHANCE:
                 message_json = message.get_json()
                 target = self.get_player_by_id(message_json["to"])
-                target.has_second_chance = True
-
                 giver = self.get_player_by_id(message_json["from"])
+                target.has_second_chance = True
                 self.on_second_chance(giver, target)
-                return
             
             case MessageType.SECOND_CHANCE_USED:
-                print("second chance used")
                 message_json = message.get_json()
                 target = self.get_player_by_id(message_json["id"])
                 target.has_second_chance = False
-                return
             
             case MessageType.REQUEST_HIT_OR_STAND:
-                hit_or_stand = self.handle_hit_stand()
-                message = Message(MessageType.HIT_OR_STAND)
-                message.push_dict({"HIT": "T"} if hit_or_stand else {"HIT": "F"})
-                self.send(message)
-                return
+                hit = self.handle_hit_stand()
+                self.send(Message(MessageType.HIT_OR_STAND, {"hit": "T" if hit else "F"}))
 
             case MessageType.REQUEST_ASSIGN_FREEZE:
                 id = self.handle_freeze()
-                message = Message(MessageType.ASSIGN_FREEZE)
-                message.push_dict({"id": id})
-                self.send(message)
-                return
+                self.send(Message(MessageType.ASSIGN_FREEZE, {"id": id}))
 
             case MessageType.REQUEST_ASSIGN_FLIP_THREE:
                 id = self.handle_flip_three()
-                message = Message(MessageType.ASSIGN_FLIP_THREE)
-                message.push_dict({"id": id})
-                self.send(message)
-                return
+                self.send(Message(MessageType.ASSIGN_FLIP_THREE, {"id": id}))
 
             case MessageType.REQUEST_ASSIGN_SECOND_CHANCE:
                 id = self.handle_second_chance()
-                message = Message(MessageType.ASSIGN_SECOND_CHANCE)
-                message.push_dict({"id": id})
-                self.send(message)
-                return
+                self.send(Message(MessageType.ASSIGN_SECOND_CHANCE, {"id": id}))
             
     def __init__(self, ip: str, port: int):
         super().__init__(ip, port)
-        BasePlayerInfo.__init__(self)
+        Player.__init__(self)
 
-class LooseyGoosey(FlipClient):
-
-    def handle_hit_stand(self) -> bool:
-        return True
-    
-    def handle_freeze(self) -> int:
-        valid = [player for player in self.competitors if player.is_alive()]
-        return random.choice(valid).id if valid else self.id
-    
-    def handle_flip_three(self) -> int:
-        valid = [player for player in self.competitors if player.is_alive()]
-        return random.choice(valid).id if valid else self.id
-    
-    def handle_second_chance(self) -> int:
-        valid = [player for player in self.competitors if (player.is_alive() and not player.has_second_chance)]
-        if(valid):
-            return random.choice(valid).id
-        else:
-            for player in self.competitors:
-                print(player)
-            while(True):
-                pass
 
     
 
-def main():
-    flip_client = LooseyGoosey("127.0.0.1", 7070)
-    flip_client._connect()
-    flip_client.start()
-
-
-if __name__ == "__main__":
-    main()
