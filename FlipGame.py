@@ -1,6 +1,7 @@
 from Flip import Cards, Player, AddCardResult
 from net.netimports import *
 from enum import IntEnum
+from config import DECISION_TIME
 import random
 
 class WrongActionException(Exception):
@@ -28,29 +29,40 @@ class Status(IntEnum):
 class RemotePlayer(Player, Connection):
 
     def hit_or_stand(self):
+        self.last_action = time.time()
         self.status = Status.DECIDING_HIT_OR_STAND
         message = Message(MessageType.REQUEST_HIT_OR_STAND)
         self.send(message)
     
     def assign_freeze_card(self):
+        self.last_action = time.time()
         self.status = Status.DECIDING_ASSIGN_FREEZE
         message = Message(MessageType.REQUEST_ASSIGN_FREEZE)
         self.send(message)
 
     def assign_flip_three_card(self):
+        self.last_action = time.time()
         self.status = Status.DECIDING_ASSIGN_FLIP_THREE
         message = Message(MessageType.REQUEST_ASSIGN_FLIP_THREE)
         self.send(message)
 
     def assign_second_chance_card(self):
+        self.last_action = time.time()
         self.status = Status.DECIDING_ASSIGN_SECOND_CHANCE
         message = Message(MessageType.REQUEST_ASSIGN_SECOND_CHANCE)
         self.send(message)
 
+    def check_decision_time_exceeded(self, current_time):
+        if(self.status == Status.WAITING):
+            return False
+        
+        return ((current_time - self.last_action)*1000) > DECISION_TIME
+
     def __init__(self, conn, addr):
         self.opponents: list[Player] = []
         self.name: str = ""
-        self.status: Status = Status.WAITING        
+        self.status: Status = Status.WAITING       
+        self.last_action: float = 0 
         Connection.__init__(self, conn, addr)
         Player.__init__(self)
 
@@ -224,7 +236,7 @@ class FlipGame:
     def remove_player(self, player: RemotePlayer):
         print(f"[!] Player {player.id} disconnected")
 
-        self.announce(Message(MessageType.DISCONNECT,{"id": player.id}))
+        self.announce(Message(MessageType.PLAYER_DISQUALIFIED, {"id": player.id}))
 
         if(self.dealer == player):
             self.dealer = self._next_player(self.dealer)
@@ -301,10 +313,17 @@ class FlipGame:
             self.remove_player(player)
             self._next_action()
             return False
+        
+    def check_decision_time_exceeded(self) -> Player:
+        current_time = time.time()
+        for player in self.players:
+            if player in self.players:
+                if(player.check_decision_time_exceeded(current_time)):
+                    return player
+                
     
     def __init__(self, players: list[RemotePlayer]):
         self.deck: list[Cards] = []
-        self.players: list[RemotePlayer] = players
 
         self.turn: RemotePlayer
         self.dealer: RemotePlayer = players[0]
@@ -318,8 +337,7 @@ class FlipGame:
         self.game_over = False
         self.dc_index = None
 
-
-        self.players = players
+        self.players: list[RemotePlayer] = players
         self._create_deck()
         print("[*] Creating a new FlipGame, players are: ")
         for player in players:

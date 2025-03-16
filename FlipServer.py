@@ -52,12 +52,16 @@ class FlipServer(Server):
     def _update(self):
         super()._update()
         for game in self.games:
+
+            player_exceeded_time = game.check_decision_time_exceeded()
+            if(player_exceeded_time):
+                self.on_disconnect(player_exceeded_time)
+
             if(game.game_over):
                 self.queue.extend(game.players)
                 self.games.remove(game)
         self.matcher()
         return
-
 
     def get_id(self):
         while(True):
