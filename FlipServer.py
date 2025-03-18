@@ -80,7 +80,7 @@ class FlipServer(Server):
         self.parse_lock.acquire()
         if message.header.type == MessageType.PLAYER_INFO:
             message_json = message.get_json()
-            player.set_name(message_json["name"])
+            player.set_player_info(message_json["name"], message_json["key"])
         else:
             game = self.get_game_by_player(player)
             if(game):

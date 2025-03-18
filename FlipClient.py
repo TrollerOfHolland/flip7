@@ -7,7 +7,7 @@ class FlipClient(Client, Player):
     competitors: list[Player] = []
 
     def _on_connect(self):
-        message_json = {"name": "Larsykfz222 " + str(random.randint(0, 100000)), "pass": "elo"}
+        message_json = {"name": self.name, "key": self.elo_key}
         message = Message(MessageType.PLAYER_INFO, message_json)
         self.send(message)
     
@@ -142,7 +142,9 @@ class FlipClient(Client, Player):
                 id = self.handle_second_chance()
                 self.send(Message(MessageType.ASSIGN_SECOND_CHANCE, {"id": id}))
             
-    def __init__(self, ip: str, port: int):
+    def __init__(self, ip: str, port: int, name: str = "Unnamed", elo_key: str = "no_elo"):
+        self.name = name
+        self.elo_key = elo_key
         super().__init__(ip, port)
         Player.__init__(self)
 

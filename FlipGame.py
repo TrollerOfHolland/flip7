@@ -21,23 +21,23 @@ class PlayerElo:
     def _load_elo(self):
         with open(ELO_FILENAME, 'r') as elo_file:
             elo_json: dict[str, int] = json.load(elo_file)
-            if(self.name in elo_json.keys()):
-                self.elo = elo_json[self.name]
+            if(self.key in elo_json.keys()):
+                self.elo = elo_json[self.key]
             else:
                 self.elo = STARTING_ELO
 
     def _save_elo(self):
-        read_handle =  open(ELO_FILENAME, 'r+')
+        read_handle =  open(ELO_FILENAME, 'r')
         elo_json: dict[str, int] = json.load(read_handle)
-        elo_json[self.name] = self.elo
         read_handle.close()
-        write_handle = open(ELO_FILENAME, 'w+')
+        elo_json[self.key] = self.elo
+        write_handle = open(ELO_FILENAME, 'w')
         json.dump(elo_json, write_handle, indent=8)
         write_handle.close()
 
     def set_elo(self, elo):
         self.elo = elo
-        if(self.name != None):
+        if(self.key != None):
             self._save_elo()
 
     @staticmethod
@@ -57,9 +57,12 @@ class PlayerElo:
                 if(player == opponent):
                     continue
                 PlayerElo.update_elo(player, opponent, int(px > py) if px != py else 0.5)
+
+    def set_key(self, key:str):
+        self.key = str(key)
       
     def __init__(self):
-        self.name = None
+        self.key: str = None
         self.elo: int = STARTING_ELO
         pass
 
@@ -103,9 +106,9 @@ class RemotePlayer(Player, Connection):
         
         return ((current_time - self.last_action)*1000) > DECISION_TIME
     
-    def set_name(self, name):
-        self.elo.name = name
+    def set_player_info(self, name: str, key: str):
         self.name = name
+        if(key != "no_elo"): self.elo.set_key(key)
 
     def __init__(self, conn, addr):
         self.opponents: list[Player] = []

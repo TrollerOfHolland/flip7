@@ -26,7 +26,7 @@ class CallingStation(FlipClient):
 
 
 def main():
-    flip_client = CallingStation("127.0.0.1", 3145)
+    flip_client = CallingStation("127.0.0.1", 3145, random.randint(0, 1000), random.randint(0, 1000))
     flip_client._connect()
     flip_client.start()
 
