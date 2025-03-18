@@ -1,7 +1,7 @@
 from Flip import Cards, Player, AddCardResult
 from net.netimports import *
 from enum import IntEnum
-from config import DECISION_TIME
+from config import DECISION_TIME, ELO_FILENAME, STARTING_ELO, ELO_K
 import random
 
 class WrongActionException(Exception):
@@ -16,6 +16,53 @@ class WrongActionException(Exception):
 
 
 
+class PlayerElo:
+
+    def _load_elo(self):
+        with open(ELO_FILENAME, 'r') as elo_file:
+            elo_json: dict[str, int] = json.load(elo_file)
+            if(self.name in elo_json.keys()):
+                self.elo = elo_json[self.name]
+            else:
+                self.elo = STARTING_ELO
+
+    def _save_elo(self):
+        read_handle =  open(ELO_FILENAME, 'r+')
+        elo_json: dict[str, int] = json.load(read_handle)
+        elo_json[self.name] = self.elo
+        read_handle.close()
+        write_handle = open(ELO_FILENAME, 'w+')
+        json.dump(elo_json, write_handle, indent=8)
+        write_handle.close()
+
+    def set_elo(self, elo):
+        self.elo = elo
+        if(self.name != None):
+            self._save_elo()
+
+    @staticmethod
+    def update_elo(a, b, s_a: float):
+        q_a = 10 ** (a.elo / 400)
+        q_b = 10 ** (b.elo / 400)
+        p_a = q_a / (q_a + q_b)
+        p_b = 1 - p_a
+
+        a.set_elo(a.elo + ELO_K * (s_a - p_a))
+        b.set_elo(b.elo + ELO_K * ((1-s_a) - p_b))
+
+    @staticmethod
+    def update_elos(players):
+        for player, px in players.items():
+            for opponent, py in players.items():
+                if(player == opponent):
+                    continue
+                PlayerElo.update_elo(player, opponent, int(px > py) if px != py else 0.5)
+      
+    def __init__(self):
+        self.name = None
+        self.elo: int = STARTING_ELO
+        pass
+
 class Status(IntEnum):
     WAITING = 0
     DECIDING_HIT_OR_STAND = 1
@@ -23,8 +70,6 @@ class Status(IntEnum):
     DECIDING_ASSIGN_FLIP_THREE = 3
     DECIDING_ASSIGN_SECOND_CHANCE = 4
     FORCED_HIT = 5
-    
-
 
 class RemotePlayer(Player, Connection):
 
@@ -57,6 +102,10 @@ class RemotePlayer(Player, Connection):
             return False
         
         return ((current_time - self.last_action)*1000) > DECISION_TIME
+    
+    def set_name(self, name):
+        self.elo.name = name
+        self.name = name
 
     def __init__(self, conn, addr):
         self.opponents: list[Player] = []
@@ -65,6 +114,7 @@ class RemotePlayer(Player, Connection):
         self.last_action: float = 0 
         Connection.__init__(self, conn, addr)
         Player.__init__(self)
+        self.elo: PlayerElo = PlayerElo()
 
 
 
@@ -79,6 +129,12 @@ class FlipGame:
         for player in self.players:
             results.append((player, player.total_points))
         results.sort(reverse=True, key= lambda x: x[1])
+
+        elo_map = {}
+        for a,b in results:
+            elo_map[a.elo] = b
+
+        PlayerElo.update_elos(elo_map)
         return results
     
     def _on_game_over(self):

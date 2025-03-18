@@ -1,5 +1,7 @@
 from net.netimports import *
 from FlipGame import *
+from config import ELO_FILENAME
+import os
 import math
 
 
@@ -78,7 +80,7 @@ class FlipServer(Server):
         self.parse_lock.acquire()
         if message.header.type == MessageType.PLAYER_INFO:
             message_json = message.get_json()
-            player.name = message_json["name"]
+            player.set_name(message_json["name"])
         else:
             game = self.get_game_by_player(player)
             if(game):
@@ -91,6 +93,11 @@ class FlipServer(Server):
                     
 
 def main():
+    if(not os.path.exists(ELO_FILENAME)):
+        with open(ELO_FILENAME, 'w') as write_handle:
+            json.dump({}, write_handle, indent=6)
+
+
     server = FlipServer(3145)
     server.start_handler()
 
