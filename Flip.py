@@ -83,7 +83,8 @@ class Player:
         self.total_points = 0
     
     def __repr__(self):
-        return f"id = {self.id}, passed = {self.is_passed}, bust = {self.is_bust}, second_chance = {self.has_second_chance} cards = [{" ".join([str(card) for card in self.cards])}], points = {self.get_points()}"
+        card_text = " ".join([str(card) for card in self.cards])
+        return f"id = {self.id}, passed = {self.is_passed}, bust = {self.is_bust}, second_chance = {self.has_second_chance} cards = [{card_text}], points = {self.get_points()}"
 
     def is_alive(self):
         return not (self.is_bust or self.is_passed or len(self.get_points_cards()) >=7)
