@@ -29,6 +29,15 @@ Flip7 is a card game simulation project that consists of several components:
 
 - **Scoring:**  
   Players receive points based on the sum of number cards in their hand. Additional bonus points apply if exactly seven number cards are drawn. Modifier cards can alter the score (e.g., multiplication or addition).
+  The game ends if a player has more than 200 points by the end of the round. The player with the most points wins the game.
+
+  For this server, players are automatically put into matches, which consist of multiple games.
+  The amount of games in a match can be set [in the config](./config.py)
+  After each game, the player in 1st place is awarded 1 point, the player in 2nd place is awareded 1/%score decrease ratio% points
+  This ratio can also be set in the config file.
+
+  After each game, a players elo rating is automatically updated.
+  settings related to elo rating, like the K value and starting elo can also be found [in the config](./config.py)
 
 - **Player Actions:**  
   When it's a player's turn, the server sends a decision request (**hit_stay**) along with the player's current hand and the hands of other players.  
@@ -37,51 +46,31 @@ Flip7 is a card game simulation project that consists of several components:
   - **Flip Three:** The player chooses an opponent to receive three additional cards.
   - **Second Chance:** This card is used to avoid busting when a duplicate number is drawn.
 
-## Communication Protocol
-
-The game server and players communicate via TCP using JSON-encoded messages.
-Below are the key message types:
-
-- **hit_stay**: Server sends a message requesting a decision. The message includes:
-  - "hand": the player’s current cards.
-  - "hands": all players' hands, indexed by player.
-  - Example: `{"action": "hit_stay", "hand": [...], "hands": {...}}`
-- **freeze**: When a "Freeze!" card is drawn, the server sends:
-  - Example: `{"action": "freeze", "players": ["Player1", "Player2"]}`
-  Note that players only contain players that are still active.
-- **flip_three**: When a "Flip Three!" card is drawn.
-  - Example: `{"action": "flip_three", "players": ["Player1", "Player2"]}`
-  Again, players only contain active players.
-- **start_game**: Sent by the server to notify players that a round is starting.
-  - Example: `{"information": "start_game", "game": 1}`
-- **game_over**: Announces the end of a round with a winner.
-  - Example: `{"information": "game_over", "winner": "Jorn"}`
-- **game_over_final**: Announces the tournament end with final win counts.
-  - Example: `{"information": "game_over_final", "win_counts": {"Jorn": 53, "NotJorn": 0}}`
-- **ready**: Sent when enough players have joined to start the game.
-  - Example: `{"information": "ready", "players": ["Player1", "Player2"]}`
-- **stayed**: Indicates a player has chosen to stay.
-  - Example: `{"information": "stayed", "player": "Player1"}`
-- **busted**: Notifies that a player has busted.
-   - Example: `{"information": "busted", "player": "Hugo"}`
-- **card_drawn**: Broadcast whenever a card is drawn by any player.
-   - Example: `{"information": "card_drawn", "player": "Player1", "card": ["number", 3]}`
-- **frozen**: Notifies that a player has been frozen by a Freeze! card.
-   - Example: `{"information": "frozen", "player": "Player1", "frozen_by": "Player2"}`
-- **flipped 3**: Indicates that a Flip Three! action has been executed.
-   - Example: `{"information": "flipped_3", "player": "Player1", "flipped_3_by": "Player2"}`
-- **second_chance_used**: Indicates that a Second Chance card was used to avoid a bust.
-   - Example: `{"information": "second_chance_used", "player": "Player1"}`
-
-Players should respond by sending JSON messages (encoded as a string) indicating their decisions (e.g., `"hit"`, `"stay"`, or a selected player's name).
-
 ## How to Implement Your Own Player
 
-Start with [`template_player.py`](./template_player.py) as a base class. This file contains stub methods (e.g., `handle_hit_stay`, `handle_freeze`, `handle_flip_three`, `handle_information`) that you can override to implement your decision-making logic. For example:
+Start with [`FlipClient.py`](./FlipClient.py) as a base class. This file contains stub methods (e.g., `handle_hit_stay`, `handle_freeze`, `handle_flip_three`, `on_freeze`, `on_flip_three`, `on_second_chance`) that you can override to implement your decision-making logic.
 
-- **Decision Making for hit or stay:**  
-  Override `handle_hit_stay` to use your custom logic based on the player's hand.
-- **Handling Special Actions:**  
-  Override `handle_freeze` and `handle_flip_three` to determine how to target opponents.
-- **Processing Game Events:**  
-  Override `handle_information` to log game events (such as scores or win notifications) and adjust your strategy accordingly.
+If you inherit this base class, as shown in [the example](./ExampleCallingStation.py), You can build your own ai.
+
+
+Functions whose name starts with `handle`, are called when 
+the server expects you to make a decision.
+
+Functions whose name starts with `on`, are functions that are called when the server wants to notify you about an action card being given to another player.
+You dont have to implement any of the gamelogic (e.g, you do NOT have to say player.has_second_chance = True when on_second_chance is called), as the client automatically does this, but this information might help you with future decisionmaking.
+
+For clarity, it is advised that you collase the `_parse_message` function, as you only need to modify this method if you want to change the networking 
+An important member field for this class is 
+* **competitors**. A list of all competitors in the current game.
+
+The FlipClient inherits from Player as given in [Flip.py](./FlipClient.py)
+This class contains a number of useful methods for implementing your own client, like
+* **get_point_cards()** 
+* **get_points()**
+Documentation for these methods is provided in the python file itself
+The FlipClient also contains a number of member variables, which your ai can use to make decisions
+* **is_bust**, a boolean indicating if the player is bust
+* **is_frozen**, a boolean indicating if the player is frozen
+* **has_second_chance**, a boolean indicating if the player has a second chance card
+* **total_points**, a integer indicating the total points the player has in the current game
+* **score**, a floating point indicating the total amount of score the player has in the current match

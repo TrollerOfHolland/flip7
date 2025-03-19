@@ -4,17 +4,21 @@ from FlipClient import FlipClient
 class CallingStation(FlipClient):
 
     def handle_hit_stand(self) -> bool:
+        """return True to hit, False to stay"""
         return True
     
     def handle_freeze(self) -> int:
+        """return the id of a player you want to give a freeze"""
         valid = [player for player in self.competitors if player.is_alive()]
         return random.choice(valid).id if valid else self.id
     
     def handle_flip_three(self) -> int:
+        """return the id of a player you want to give a flip three"""
         valid = [player for player in self.competitors if player.is_alive()]
         return random.choice(valid).id if valid else self.id
     
     def handle_second_chance(self) -> int:
+        """return the id of a player you want to give a second chance"""
         valid = [player for player in self.competitors if (player.is_alive() and not player.has_second_chance)]
         if(valid):
             return random.choice(valid).id

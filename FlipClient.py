@@ -22,25 +22,32 @@ class FlipClient(Client, Player):
         points = sorted([player.total_points for player in players], reverse=True)
         for player in players: player.score = 1 / (SCORE_DECREASE_RATIO ** points.index(player.total_points))
 
-    def on_freeze(self, giver, target):
+    def on_freeze(self, giver: Player, target: Player):
+        """This method is called when a freeze card is given to a player"""
         print(f"{giver.id} gives a freeze to {target.id}")
 
-    def on_flip_three(self, giver, target):
+    def on_flip_three(self, giver: Player, target: Player):
+        """This method is called when a flip three card is given to a player"""
         print(f"{giver.id} gives a flip three to {target.id}")
 
-    def on_second_chance(self, giver, target):
+    def on_second_chance(self, giver: Player, target: Player):
+        """This method is called when a second chance card is given to a player"""
         print(f"{giver.id} gives a second chance to {target.id}")
 
     def handle_hit_stand(self) -> bool:
+        """return True to hit, False to stay"""
         raise NotImplementedError
     
     def handle_freeze(self) -> int:
+        """return the id of a player you want to freeze"""
         raise NotImplementedError
     
     def handle_flip_three(self) -> int:
+        """return the id of a player you want to give a flip three"""
         raise NotImplementedError
     
     def handle_second_chance(self) -> int:
+        """return the id of a player you want to give a second chance"""
         raise NotImplementedError
 
     def _parse_message(self, message: Message):

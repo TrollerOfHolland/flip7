@@ -39,6 +39,7 @@ class Player:
     is_passed: bool = False
     has_second_chance: bool = False
 
+    score: float = 0.0         
     total_points: int = 0
 
     def add_card(self, card:Cards) -> AddCardResult:
@@ -56,11 +57,13 @@ class Player:
         self.cards.append(card)
         return AddCardResult.ALIVE
         
-    def get_points_cards(self):
+    def get_points_cards(self) -> list[Cards]:
+        """Return all regular playing cards, so 0-12"""
         point_cards = [card for card in self.cards if int(card) < 13]
         return point_cards
         
-    def get_points(self):
+    def get_points(self) -> int:
+        """Returns the amount of points your hand would currently give you"""
         if(self.is_bust):
             return 0
 
@@ -95,7 +98,6 @@ class Player:
         return not (self.is_bust or self.is_passed or len(self.get_points_cards()) >=7)
     
     def __init__(self):
-        self.score: float = 0.0         
         self.cards: list[Cards] = []
 
     
