@@ -5,3 +5,8 @@ DECISION_TIME = 5000
 ELO_FILENAME = "ELO.json"
 ELO_K = 8
 STARTING_ELO = 1500
+
+
+GAMES_IN_MATCH = 25
+
+SCORE_DECREASE_RATIO = 11   # = score(no. 1) / score(no. 2)

@@ -7,9 +7,10 @@ class MessageType(IntEnum):
     PLAYER_INFO = 2
     DISCONNECT = 3
 
-    NEW_GAME = 10
-    NEW_ROUND = 11
-    GAME_OVER = 12
+    NEW_MATCH = 10
+    NEW_GAME = 11
+    NEW_ROUND = 12
+    MATCH_OVER = 13
     PLAYER_DISQUALIFIED = 13 
 
     # Round announcements

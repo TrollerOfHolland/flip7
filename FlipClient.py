@@ -1,6 +1,7 @@
 from net.netimports import *
 from Flip import Cards, Player
 import random
+from config import SCORE_DECREASE_RATIO
 
 class FlipClient(Client, Player):
     
@@ -16,6 +17,11 @@ class FlipClient(Client, Player):
             return self
         return next((player for player in self.competitors if player.id == id), 0)
     
+    def update_scores(self):
+        players = self.competitors + [self]
+        points = sorted([player.total_points for player in players], reverse=True)
+        for player in players: player.score = 1 / (SCORE_DECREASE_RATIO ** points.index(player.total_points))
+
     def on_freeze(self, giver, target):
         print(f"{giver.id} gives a freeze to {target.id}")
 
@@ -46,8 +52,9 @@ class FlipClient(Client, Player):
                 id = int(message_json["id"])
                 self.id = id
 
-            case MessageType.NEW_GAME:
-                self.new_game()
+
+            case MessageType.NEW_MATCH:
+                self.new_match()
                 self.competitors.clear()
                 message_json = message.get_json()
                 for k, id in message_json.items():
@@ -55,6 +62,13 @@ class FlipClient(Client, Player):
                         competitior = Player()
                         competitior.id = id
                         self.competitors.append(competitior)
+
+            case MessageType.NEW_GAME:
+                self.update_scores()
+                for player in self.competitors:
+                    player.new_game()
+                self.new_game()
+            
 
             case MessageType.PLAYER_DISQUALIFIED:
                 id = int(message.get_json()["id"])
@@ -72,7 +86,7 @@ class FlipClient(Client, Player):
                 for player in self.competitors:
                     player.new_round()
 
-            case MessageType.GAME_OVER:
+            case MessageType.MATCH_OVER:
                 message_json = message.get_json()
                 rank = 1
                 for k,v in message_json.items():

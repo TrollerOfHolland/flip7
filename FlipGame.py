@@ -1,7 +1,7 @@
 from Flip import Cards, Player, AddCardResult
 from net.netimports import *
 from enum import IntEnum
-from config import DECISION_TIME, ELO_FILENAME, STARTING_ELO, ELO_K
+from config import DECISION_TIME, ELO_FILENAME, STARTING_ELO, ELO_K, GAMES_IN_MATCH, SCORE_DECREASE_RATIO
 import random
 
 class WrongActionException(Exception):
@@ -121,37 +121,27 @@ class RemotePlayer(Player, Connection):
 
 
 
-class FlipGame:
+class FlipMatch:
 
     def announce(self, message: Message):
         for player in self.players:
             player.send(message)
-
-    def get_game_results(self) -> list[(Player, int)]:
-        results = []
-        for player in self.players:
-            results.append((player, player.total_points))
-        results.sort(reverse=True, key= lambda x: x[1])
-
-        elo_map = {}
-        for a,b in results:
-            elo_map[a.elo] = b
-
-        PlayerElo.update_elos(elo_map)
-        return results
     
+    def update_scores(self):
+        points = sorted([player.total_points for player in self.players], reverse=True)
+        for player in self.players: player.score = 1 / (SCORE_DECREASE_RATIO ** points.index(player.total_points))
+
+    def _on_match_over(self):
+        results_map = {player.elo: player.score for player in self.players}
+        PlayerElo.update_elos(results_map)
+        self.match_over = True
+
     def _on_game_over(self):
-        message = Message(MessageType.GAME_OVER)
+        self.announce(Message(MessageType.NEW_GAME))
+        self.update_scores()
+        for player in self.players:
+            player.new_game()
 
-        results = self.get_game_results()
-
-        message_json = {}
-        for rank in results:
-            message_json[rank[0].id] = rank[1]
-        message.push_dict(message_json)
-        self.announce(message)
-        
-        self.game_over = True
 
     def check_game_over(self)-> bool:
         if(len(self.players) < 3 ):
@@ -236,13 +226,15 @@ class FlipGame:
     
     def _next_action(self):
         while(True):
-            if(self._check_round_over() or self.check_game_over()):
-
+            if(self._check_round_over()):
                 for player in self.players:
                     player.new_round()
                 if(self.check_game_over()):
+                    self.games_played += 1
                     self._on_game_over()
-                    break
+                    if(self.games_played >= GAMES_IN_MATCH):
+                        self._on_match_over()
+                        break
                 else:
                     self._start_round()
                     continue
@@ -393,17 +385,18 @@ class FlipGame:
         self.cards_in_round: list[Cards] = [] 
         self.discards: list[Cards] = [] 
 
-        self.game_over = False
+        self.games_played = 0
+        self.match_over = False
         self.dc_index = None
 
         self.players: list[RemotePlayer] = players
         self._create_deck()
-        print("[*] Creating a new FlipGame, players are: ")
+        print("[*] Creating a new FlipMatch, players are: ")
         for player in players:
-            player.new_game()
+            player.new_match()
             print(f"{player.name} id = {player.id}")
 
-        message = Message(MessageType.NEW_GAME)
+        message = Message(MessageType.NEW_MATCH)
         message_json = {}
         for i in range(len(players)):
             message_json[i] = players[i].id

@@ -7,7 +7,7 @@ import math
 
 class FlipServer(Server):
 
-    games: list[FlipGame] = []
+    games: list[FlipMatch] = []
     used_id: list[int] = []
     queue: list[RemotePlayer] = []
 
@@ -26,7 +26,7 @@ class FlipServer(Server):
     def create_game(self, player_count):
         new_game = random.sample(self.queue, player_count)
         self.queue = list(set(self.queue) - set(new_game))
-        self.games.append(FlipGame(new_game))
+        self.games.append(FlipMatch(new_game))
 
     def matcher(self):
         game_target_players = max(3, min(math.ceil(len(self._clients) / 3), 8))
@@ -59,7 +59,7 @@ class FlipServer(Server):
             if(player_exceeded_time):
                 self.on_disconnect(player_exceeded_time)
 
-            if(game.game_over):
+            if(game.match_over):
                 self.queue.extend(game.players)
                 self.games.remove(game)
         self.matcher()
@@ -72,7 +72,7 @@ class FlipServer(Server):
                 self.used_id.append(i)
                 return i
     
-    def get_game_by_player(self, client) -> FlipGame:
+    def get_game_by_player(self, client) -> FlipMatch:
         return next((game for game in self.games if client in game.players), None)
     
     def _parse_message(self, player: RemotePlayer, message: Message):

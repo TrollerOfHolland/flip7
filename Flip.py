@@ -1,4 +1,5 @@
 from enum import IntEnum
+from config import SCORE_DECREASE_RATIO
 
 
 class Cards(IntEnum):
@@ -81,6 +82,10 @@ class Player:
     def new_game(self):
         self.new_round()
         self.total_points = 0
+
+    def new_match(self):
+        self.new_game()
+        self.score = 0
     
     def __repr__(self):
         card_text = " ".join([str(card) for card in self.cards])
@@ -88,8 +93,9 @@ class Player:
 
     def is_alive(self):
         return not (self.is_bust or self.is_passed or len(self.get_points_cards()) >=7)
-
+    
     def __init__(self):
+        self.score: float = 0.0         
         self.cards: list[Cards] = []
 
     
