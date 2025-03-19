@@ -170,17 +170,15 @@ class FlipMatch:
         self.deck.extend([Cards.FLIP_THREE] * 3 )
         self.deck.extend([Cards.SECOND_CHANCE] * 3 )
 
-        random.shuffle(self.deck)
+
 
     def _pop_random_card(self) -> Cards:
         if(not self.deck):
-            random.shuffle(self.discards)
-            self.deck = self.discards[:]
-            self.discards.clear()
+            self.deck = self.discards
+            self.discards = []
 
-        card = random.choice(self.deck)
+        card = self.deck.pop(random.randrange(len(self.deck)))
         self.cards_in_round.append(card)
-        self.deck.remove(card)
         return card
     
     def _deal_card(self, player: RemotePlayer):
