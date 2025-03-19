@@ -2,11 +2,6 @@
 
 Flip7 is a card game simulation project that consists of several components:
 
-- A game server that manages game rounds, player actions, and scores. See [server.py](./server.py).
-- Example player implementations in the [example_players](./example_players) folder:
-  - [risky.py](./example_players/risky.py) – a player favoring risky moves.
-  - [cautious.py](./example_players/cautious.py) – a player with a more cautious strategy.
-
 ## How to Run
 
 1. Start the game server:
